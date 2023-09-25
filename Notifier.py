@@ -1,65 +1,61 @@
-#!/usr/bin/python2.7
-
-import mechanize
+import requests
 from bs4 import BeautifulSoup
-import pynotify
+import smtplib
 import time
 
-
-browser = mechanize.Browser()
-browser.set_handle_robots(False)
-cookies = mechanize.CookieJar()
-
-# insert custom User-Agent if u  want
-browser.addheaders = [('User-agent', 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:25.0) Gecko/20100101 Firefox/25.0')]
-
-# yeah yeah I know its a bad programing practice to enclose lottsa stuff in a single "try"
-# well..I'll change it someday.
-while True:
-  try:
+# Function to check product availability
+def check_product_availability(product_url, target_price):
+    headers = {
+        'User-Agent': 'Your User Agent',  # Set your user agent
+    }
     
-
-    # uses m.facebook.com because its easier to parse,light
-    # and doesn't change as often as the Desktop version
-
-
-    browser.open("https://m.facebook.com/")
-    time.sleep(4)
-    browser.select_form(nr=0)
+    response = requests.get(product_url, headers=headers)
+    soup = BeautifulSoup(response.text, 'html.parser')
     
-
-    # set your username and password here
-    browser.form['email'] = ''
-    browser.form['pass'] = ''
-    response = browser.submit()
+    # Extract information to determine availability (modify as per the website structure)
+    product_title = soup.find('h1', {'class': 'seoDescription'}).text.strip()
+    product_price = float(soup.find('span', {'class': 'big'}).text.strip().replace('$', '').replace(',', '.'))
     
+    # Check if the product is available and the price is below the target
+    if 'out of stock' not in soup.text.lower() and product_price <= target_price:
+        return True, product_title, product_price
+    else:
+        return False, product_title, product_price
 
-    #runs infinitely and checks for new notifications every 1 min
+# Function to send email notification
+def send_email(subject, body):
+    smtp_server = 'smtp.gmail.com'  # Use Gmail's SMTP server
+    smtp_port = 587
+    sender_email = 'your_email@gmail.com'  # Your Gmail email address
+    sender_password = 'your_password'  # Your Gmail password
+    receiver_email = 'recipient_email@example.com'  # Recipient's email address
+
+    message = f'Subject: {subject}\n\n{body}'
+
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.sendmail(sender_email, receiver_email, message)
+        print('Email notification sent successfully.')
+    except Exception as e:
+        print(f'Error sending email: {str(e)}')
+    finally:
+        server.quit()
+
+# Main function
+if __name__ == "__main__":
+    product_url = 'https://www.eprice.it/Schede-Video-GIGABYTE-Geforce-Rtx-4070-Windforce-Oc-12g-Oc-Edition-Grafikkarten-Geforce-Rtx-4070-12gb-Gddr6x-Pcie-4-0-Hdmi-3-X-Displayport-gv-n4070wf3oc-12gd-/d-67104691'  # URL of the product page
+    target_price = 500  # Set your target price
+    
     while True:
-     
-
-     # if you wish to change the frequeny of updation , set the 
-     # value you want in seconds here.
-     time.sleep(60)
-     
-     browser.open("https://m.facebook.com/notifications")
-     soup=BeautifulSoup(browser.response().read())
-     print(soup.title.string)
-     pynotify.init('Notification')
-     Is=soup.findAll('div',attrs={ "class" : "acy apm"})
-     for s in Is:
-        msg=s.get_text()
-        print(msg)
-        print("")
-        n=pynotify.Notification('Notification',msg)
-        n.show()
-
-  except Exception, e:
-
-    pynotify.init('Notification')
-    n=pynotify.Notification('Notification',"Connection/Authentication Failure")
-    n.show()
-    print("Connection/Authentication Failure")
-    time.sleep(60)
-  
-      
+        available, product_title, product_price = check_product_availability(product_url, target_price)
+        
+        if available:
+            subject = 'Product Available!'
+            body = f'The product "{product_title}" is now available at ${product_price}. Buy it now!'
+            send_email(subject, body)
+            break
+        
+        print('Product is not available yet. Checking again in 10 minutes...')
+        time.sleep(600)  # Check every hour
