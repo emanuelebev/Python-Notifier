@@ -84,7 +84,7 @@ The primary goal of this Python program is to monitor a specific online marketpl
 * **Collectors and Hobbyists**: Enables collectors and hobbyists to stay up-to-date with new releases and limited-edition items on various marketplaces.
 * **Price-Sensitive Shoppers**: Allows users to monitor articles until they reach a specific price threshold, ensuring they get the best deal.
 
-## How to Use
+## How to Use
 * Install the required dependencies. You can use pip to install them from the requirements.txt file.
 ```
 pip install -r requirements.txt
